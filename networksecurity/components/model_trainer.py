@@ -1,6 +1,6 @@
 import os
 import sys
-
+import pickle
 from networksecurity.exception.exception import NetworkSecurityException 
 from networksecurity.logging.logger import logging
 
@@ -24,6 +24,8 @@ from sklearn.ensemble import (
     RandomForestClassifier,
 )
 import mlflow
+import dagshub
+dagshub.init(repo_owner='nandhi319', repo_name='Security_Project', mlflow=True)
 from urllib.parse import urlparse
 
 
@@ -40,21 +42,36 @@ class ModelTrainer:
         except Exception as e:
             raise NetworkSecurityException(e,sys)
         
-    def track_mlflow(self,best_model,classificationmetric):
+    # def track_mlflow(self,best_model,classificationmetric):
     
-        with mlflow.start_run():
-            f1_score=classificationmetric.f1_score
-            precision_score=classificationmetric.precision_score
-            recall_score=classificationmetric.recall_score
+    #     with mlflow.start_run():
+    #         f1_score=classificationmetric.f1_score
+    #         precision_score=classificationmetric.precision_score
+    #         recall_score=classificationmetric.recall_score
 
             
 
-            mlflow.log_metric("f1_score",f1_score)
-            mlflow.log_metric("precision",precision_score)
-            mlflow.log_metric("recall_score",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
+    #         mlflow.log_metric("f1_score",f1_score)
+    #         mlflow.log_metric("precision",precision_score)
+    #         mlflow.log_metric("recall_score",recall_score)
+    #         mlflow.sklearn.log_model(best_model,"model")
           
+    def track_mlflow(self, best_model, classificationmetric):
+        with mlflow.start_run():
+            f1_score = classificationmetric.f1_score
+            precision_score = classificationmetric.precision_score
+            recall_score = classificationmetric.recall_score
 
+            mlflow.log_metric("f1_score", f1_score)
+            mlflow.log_metric("precision", precision_score)
+            mlflow.log_metric("recall_score", recall_score)
+
+            # --- NEW: Manually save and log the model ---
+            model_path = "best_model.pkl" # Define a filename
+            with open(model_path, "wb") as f:
+                pickle.dump(best_model, f) # Save the model using pickle (or joblib)
+            mlflow.log_artifact(model_path, "model_artifacts") # Log the saved model as an artifact
+            os.remove(model_path)
 
         
     def train_model(self,X_train,y_train,x_test,y_test):
